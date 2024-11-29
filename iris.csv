@@ -1,0 +1,33 @@
+install.packages("xgboost")
+install.packages("lime")
+install.packages("caret")
+
+library(xgboost)
+library(lime)
+library(caret)
+
+data(iris)
+data
+iris$class = as.numeric(iris$Species == "setosa")
+set.seed(2345)
+intrain = createDataPartition(iris$class, p = 0.75, list = FALSE)
+train <- iris[intrain, ]
+test <- iris[-intrain, ]
+train_matrix <- as.matrix(train[, 1:4])
+test_matrix <- as.matrix(test[, 1:4])
+train_labels <- train$class
+test_labels <- test$class
+model <- xgboost(data = train_matrix, label = train_labels,  objective = "binary:logistic",
+                 nrounds = 50,  verbose = 0)
+model
+predictions <- predict(model, newdata = test_matrix)
+predicted_class <- ifelse(predictions > 0.5, 1, 0)
+confusionMatrix(factor(predicted_class), factor(test_labels))
+explainer <- lime(train[, 1:4], model = model, bin_continuous = TRUE, n_bins = 5)
+explainer
+example <- test[5, 1:4, drop = FALSE]
+example
+actual_class <- test$class[5]
+explanation <- lime::explain(example, explainer, n_labels = 1, n_features = 4)
+explanation
+plot_features(explanation)
