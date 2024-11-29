@@ -44,13 +44,24 @@ ggplot(cust_data, aes(x = factor(Income))) +
 # Perform sentiment analysis on Jane Austen's novels
 library(janeaustenr)
 library(tidytext)
-austen_books <- austen_books()
-tidy_books <- austen_books %>%
-  unnest_tokens(word, text) %>%
-  inner_join(get_sentiments("bing"))
-sentiment_count <- tidy_books %>%
-  count(sentiment)
-print(sentiment_count)
+library(dplyr)
+library(ggplot2)
+
+# Load data
+text <- austen_books() %>%
+  unnest_tokens(word, text)
+
+# Perform sentiment analysis with many-to-many relationship handled
+sentiments <- text %>%
+  inner_join(get_sentiments("bing"), by = "word", relationship = "many-to-many") %>%
+  count(book, sentiment, sort = TRUE)
+
+# Visualization
+ggplot(sentiments, aes(x = book, y = n, fill = sentiment)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Sentiment Analysis", x = "Book", y = "Count") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 # ----------------------------- Set-3 -----------------------------
 
@@ -110,10 +121,17 @@ titanic_model <- glm(Survived ~ Age + Sex + Pclass, family = "binomial", data = 
 summary(titanic_model)
 
 # Text analysis of Jane Austen novels
-common_words <- austen_books %>%
-  unnest_tokens(word, text) %>%
-  count(word, sort = TRUE)
-print(common_words)
+library(janeaustenr)
+library(tidytext)
+library(dplyr)
+
+# Load data from the austen_books function
+common_words <- austen_books() %>% 
+  unnest_tokens(word, text) %>%  # Tokenize words
+  count(word, sort = TRUE)       # Count words and sort
+
+# View the most common words
+head(common_words)
 
 # Scatterplot of age and income
 ggplot(cust_data, aes(x = Age, y = Income)) +
