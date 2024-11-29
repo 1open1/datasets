@@ -1,12 +1,61 @@
 # ----------------------------- Set-1 -----------------------------
 
-# Visualize the importance of LIME using Iris dataset
+# Load necessary libraries
+library(caret)
+library(xgboost)
 library(lime)
-library(MASS)
-iris_model <- glm(Species ~ ., data = iris, family = "binomial")
-explainer <- lime(iris, iris_model)
-explanation <- explain(iris[1:10, ], explainer, n_features = 2)
-plot_features(explanation)
+
+# Load the dataset and prepare data
+data(iris)
+iris$Class <- as.numeric(iris$Species == "setosa")
+
+# Partition the data
+set.seed(123)  # For reproducibility
+intrain <- createDataPartition(iris$Species, p = 0.75, list = FALSE)
+train <- iris[intrain, ]
+test <- iris[-intrain, ]
+
+# Prepare matrices for XGBoost
+train_matrix <- as.matrix(train[, 1:4])
+test_matrix <- as.matrix(test[, 1:4])
+train_labels <- train$Class
+test_labels <- test$Class
+
+# Train the XGBoost model
+model <- xgboost(data = train_matrix, 
+                 label = train_labels, 
+                 objective = "binary:logistic", 
+                 nrounds = 50, 
+                 verbose = 0)
+
+# Summarize the model (optional)
+print(model)
+
+# Predict and evaluate
+prediction <- predict(model, newdata = test_matrix)
+prediction_class <- ifelse(prediction > 0.5, 1, 0)
+confusion_matrix <- confusionMatrix(factor(prediction_class), factor(test_labels))
+print(confusion_matrix)
+
+# LIME explanation
+explanation <- lime(train[, 1:4], 
+                    model, 
+                    bin_continuous = TRUE, 
+                    n_bins = 5)
+
+# Pick a test instance for explanation
+example <- test[5, 1:4, drop = FALSE]
+actual_class <- test$Class[5]
+
+# Generate explanation
+expl <- explain(example, 
+                explanation, 
+                n_labels = 1, 
+                n_features = 4, 
+                kernel_width = 0.5)
+
+# Plot feature importance for the selected instance
+plot_features(expl)
 
 # Implement vtreat package on a dataset
 library(vtreat)
