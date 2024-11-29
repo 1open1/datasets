@@ -140,160 +140,224 @@ ggplot(cust_data, aes(x = Age, y = Income)) +
 
 # ----------------------------- Set-6 -----------------------------
 
-# Create a vector of random integers (0 to 999) with replacement, length 250
-random_vector <- sample(0:999, size = 250, replace = TRUE)
-
-# Pick out values in the vector greater than 600
-values_above_600 <- random_vector[random_vector > 600]
-print(values_above_600)
-
-# Normalize columns of a data frame using apply
-normalize <- function(x) (x - mean(x, na.rm = TRUE)) / sd(x, na.rm = TRUE)
-df <- data.frame(A = rnorm(10), B = rnorm(10))
-normalized_df <- as.data.frame(apply(df, 2, normalize))
-print(normalized_df)
-
-# Create synthetic dataset with missing values
-set.seed(123)
-synthetic_data <- data.frame(
-  Age = sample(c(NA, 20:50), 100, replace = TRUE),
-  Income = sample(c(NA, 20000:80000), 100, replace = TRUE),
-  Number_of_Vehicles = sample(c(NA, 0:3), 100, replace = TRUE),
-  Gas_Usage = sample(c(NA, 10:50), 100, replace = TRUE)
-)
-
-# Standardize the "Age" column using mean and standard deviation
-synthetic_data$Age <- (synthetic_data$Age - mean(synthetic_data$Age, na.rm = TRUE)) /
-  sd(synthetic_data$Age, na.rm = TRUE)
-
-# Bar chart with and without facets
+# 1. Build a Linear Regression Model on the Diamonds Dataset
 library(ggplot2)
-facet_data <- data.frame(
-  Category = rep(c("A", "B"), each = 10),
-  Value = rnorm(20)
-)
-# Without facets
-ggplot(facet_data, aes(x = Category, y = Value)) +
-  geom_bar(stat = "identity", fill = "skyblue") +
-  ggtitle("Bar Chart Without Facets")
+library(caret)
+set.seed(123)
+data("diamonds")
 
-# With facets
-ggplot(facet_data, aes(x = Category, y = Value)) +
-  geom_bar(stat = "identity", fill = "skyblue") +
-  facet_wrap(~Category) +
-  ggtitle("Bar Chart With Facets")
+# Splitting the data into training and testing sets
+train_index <- createDataPartition(diamonds$price, p = 0.8, list = FALSE)
+train_set <- diamonds[train_index, ]
+test_set <- diamonds[-train_index, ]
+
+# Building the linear regression model
+model <- lm(price ~ carat, data = train_set)
+
+# Predicting on test set
+predictions <- predict(model, newdata = test_set)
+
+# Evaluate model performance using RMSE
+rmse <- sqrt(mean((predictions - test_set$price)^2))
+print(paste("RMSE:", rmse))
+
+# 2. Visualize Comparing Population Densities
+cust_data <- data.frame(Category = rep(c("A", "B", "C"), each = 100),
+                        Population = c(rnorm(100, 50, 10), rnorm(100, 60, 15), rnorm(100, 70, 20)))
+
+library(ggplot2)
+ggplot(cust_data, aes(x = Population, fill = Category)) +
+  geom_histogram(alpha = 0.6, bins = 30, position = "identity") +
+  labs(title = "Population Densities by Category", x = "Population", y = "Frequency")
+
+# 3. Generate Association Rules for Electronics Purchases
+library(arules)
+
+# Creating the transaction dataset
+transactions <- list(
+  c("Smartphone", "Case"),
+  c("Laptop", "Charger"),
+  c("Headphones", "Bluetooth Adapter"),
+  c("Tablet", "Stylus"),
+  c("Smartwatch", "Band"),
+  c("Camera", "Tripod")
+)
+
+# Converting to transactions object
+trans <- as(transactions, "transactions")
+
+# Generating rules
+rules <- apriori(trans, parameter = list(supp = 0.01, conf = 0.5))
+inspect(rules)
+
 
 # ----------------------------- Set-7 -----------------------------
 
-# Create a matrix C and find row sums using apply
-matrix_C <- matrix(1:16, nrow = 4, byrow = TRUE)
-row_sums <- apply(matrix_C, 1, sum)
-print(row_sums)
+# 1. Sentiment Analysis on Jane Austen’s Novels
+library(janeaustenr)
+library(tidytext)
 
-# Read a CSV file into a data frame
-df <- read.csv("employee_data.csv", header = TRUE, stringsAsFactors = FALSE)
+# Load and tokenize text
+austen_books <- austen_books()
+tidy_books <- austen_books %>%
+  unnest_tokens(word, text)
 
-# Create synthetic dataset with missing values
-synthetic_data2 <- data.frame(
-  Age = sample(c(NA, 20:50), 100, replace = TRUE),
-  Income = sample(c(NA, 20000:80000), 100, replace = TRUE),
-  Number_of_Vehicles = sample(c(NA, 0:3), 100, replace = TRUE),
-  Gas_Usage = sample(c(NA, 10:50), 100, replace = TRUE)
-)
+# Sentiment analysis
+library(dplyr)
+sentiment_scores <- tidy_books %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(book, sentiment, sort = TRUE)
 
-# Apply missingness treatment using vtreat
-library(vtreat)
-treatment_plan <- design_missingness_treatment(synthetic_data2)
-treated_data <- prepare(treatment_plan, synthetic_data2)
+# Visualize sentiment scores
+library(ggplot2)
+ggplot(sentiment_scores, aes(x = book, y = n, fill = sentiment)) +
+  geom_col(position = "dodge") +
+  labs(title = "Sentiment Analysis of Jane Austen's Novels", x = "Book", y = "Count")
 
-# Hexbin plot
-library(hexbin)
-hexbinplot(cust_data$Income ~ cust_data$Age, xlab = "Age", ylab = "Income")
+# 2. Visualize LIME on the Air Quality Dataset
+# Load airquality dataset and train a sample model
+library(lime)
+library(caret)
+set.seed(123)
+
+data("airquality")
+airquality <- na.omit(airquality)
+
+# Train a model
+model <- train(Ozone ~ Solar.R + Wind + Temp, data = airquality, method = "lm")
+
+# Apply LIME
+explainer <- lime(airquality, model)
+explanation <- explain(airquality[1:10, ], explainer, n_features = 3)
+plot_features(explanation)
+
+# 3. Calculate Average Temperature by Month
+library(data.table)
+library(ggplot2)
+
+# Convert airquality to data.table
+airquality_dt <- as.data.table(airquality)
+
+# Calculate average temperature by month
+avg_temp <- airquality_dt[, .(Avg_Temp = mean(Temp)), by = Month]
+
+# Plot results
+ggplot(avg_temp, aes(x = Month, y = Avg_Temp)) +
+  geom_line() +
+  labs(title = "Average Temperature by Month", x = "Month", y = "Temperature")
+
 
 # ----------------------------- Set-8 -----------------------------
 
-# Combine two lists and apply sum using lapply
-list1 <- list(a = 1:3, b = 4:6)
-list2 <- list(c = 7:9, d = 10:12)
-combined_list <- c(list1, list2)
-list1_sums <- lapply(list1, sum)
-print(list1_sums)
+# 1. Generate Association Rules for Groceries Dataset
+library(arules)
+data("Groceries")
 
-# Filter rows with dplyr
-library(dplyr)
-filtered_df <- df %>% filter(Salary > 50000)
+# Find frequent itemsets and generate rules
+rules <- apriori(Groceries, parameter = list(supp = 0.01, conf = 0.5))
+inspect(head(sort(rules, by = "lift"), 3))
 
-# Split iris dataset into training (80%) and testing (20%) sets
-library(caret)
-set.seed(123)
-train_index <- createDataPartition(iris$Species, p = 0.8, list = FALSE)
-train_set <- iris[train_index, ]
-test_set <- iris[-train_index, ]
+# 2. Linear Regression on Air Quality Dataset
+data("airquality")
+airquality <- na.omit(airquality)
 
-# Bar chart styles
-ggplot(iris, aes(x = Species)) +
-  geom_bar(fill = "lightblue") +
-  ggtitle("Bar Chart Without Facets")
+# Fit linear regression model
+model <- lm(Wind ~ Solar.R + Temp, data = airquality)
 
-ggplot(iris, aes(x = Species)) +
-  geom_bar(fill = "lightblue") +
-  facet_wrap(~Species) +
-  ggtitle("Bar Chart With Facets")
+# Summary of the model
+summary(model)
+
+# 3. Scatter Plot of Horsepower vs MPG (mtcars)
+data("mtcars")
+library(ggplot2)
+
+# Scatter plot
+ggplot(mtcars, aes(x = hp, y = mpg)) +
+  geom_point() +
+  labs(title = "Horsepower vs Miles Per Gallon", x = "Horsepower", y = "Miles per Gallon")
+
 
 # ----------------------------- Set-9 -----------------------------
 
-# Create ordered factor for education levels
-education <- factor(
-  c("Master", "Bachelor", "High School", "Bachelor", "Master"),
-  levels = c("High School", "Bachelor", "Master"),
-  ordered = TRUE
-)
+# 1. LIME on Iris Dataset
+library(lime)
+library(caret)
 
-# Create, load, and parse XML file
-library(XML)
-xml_data <- xmlParse("<root><child1>Value1</child1><child2>Value2</child2></root>")
-root_element <- xmlRoot(xml_data)
-second_child <- xmlValue(root_element[[2]])
-print(second_child)
+data("iris")
 
-# Identify and count missing values in airquality dataset
-data(airquality)
-missing_values <- colSums(is.na(airquality))
-print(missing_values)
+# Train a sample model
+model <- train(Species ~ ., data = iris, method = "rf")
+explainer <- lime(iris, model)
 
-# Remove rows with missing values
-cleaned_airquality <- na.omit(airquality)
+# Explain instance
+explanation <- explain(iris[1:10, ], explainer, n_features = 3)
+plot_features(explanation)
 
-# Density plot
-ggplot(iris, aes(x = Sepal.Length, fill = Species)) +
-  geom_density(alpha = 0.5) +
-  ggtitle("Density Plot")
+# 2. Logistic Regression on ChickWeight Dataset
+data("ChickWeight")
+
+# Fit logistic regression model
+ChickWeight$Weight_Threshold <- ifelse(ChickWeight$weight > 150, 1, 0)
+model <- glm(Weight_Threshold ~ Diet + Time, data = ChickWeight, family = "binomial")
+summary(model)
+
+# 3. Line Plot of CO2 Uptake
+library(reshape2)
+data("CO2")
+
+# Transform data
+co2_avg <- aggregate(uptake ~ Type + Treatment, CO2, mean)
+
+# Line plot
+ggplot(co2_avg, aes(x = Treatment, y = uptake, group = Type, color = Type)) +
+  geom_line() +
+  labs(title = "Average CO2 Uptake by Type and Treatment", x = "Treatment", y = "Uptake")
+
 
 # ----------------------------- Set-10 -----------------------------
 
-# Sum of all elements in a 3-dimensional array
-array_3d <- array(1:27, dim = c(3, 3, 3))
-array_sum <- sum(array_3d)
-print(array_sum)
+# 1. Linear & Logistic Regression on Diamonds Dataset
+library(caret)
+library(ggplot2)
+set.seed(123)
+data("diamonds")
 
-# Create data frame with Name and Age
-df <- data.frame(
-  Name = c("Alice", "Bob", "Alice", "Bob"),
-  Age = c(25, 30, 32, 39)
-)
+# Linear Regression
+train_index <- createDataPartition(diamonds$price, p = 0.8, list = FALSE)
+train_set <- diamonds[train_index, ]
+test_set <- diamonds[-train_index, ]
 
-# View first few rows and structure of a data frame
-print(head(df))
-print(str(df))
+lm_model <- lm(price ~ carat + cut + color + clarity, data = train_set)
+lm_predictions <- predict(lm_model, newdata = test_set)
+rmse <- sqrt(mean((lm_predictions - test_set$price)^2))
+print(paste("Linear Model RMSE:", rmse))
 
-# Group-level sampling
-group_data <- iris %>%
-  group_by(Species) %>%
-  sample_n(5)
+# Logistic Regression
+diamonds$Expensive <- ifelse(diamonds$price > 5000, 1, 0)
+log_model <- glm(Expensive ~ carat + cut + color + clarity, data = train_set, family = "binomial")
+summary(log_model)
 
-# Horizontal bar chart
-ggplot(mtcars, aes(x = reorder(row.names(mtcars), mpg), y = mpg)) +
-  geom_bar(stat = "identity", fill = "purple") +
-  coord_flip() +
-  ggtitle("Horizontal Bar Chart")
+# 2. Visualize Horsepower vs MPG (mtcars)
+data("mtcars")
 
+# Filter and plot
+library(dplyr)
+filtered_cars <- mtcars %>% filter(hp > 150)
+ggplot(filtered_cars, aes(x = hp, y = mpg)) +
+  geom_point() +
+  labs(title = "Horsepower vs MPG for High-Performance Cars", x = "Horsepower", y = "Miles per Gallon")
+
+# 3. Bar Chart with and without Facets
+cust_data <- data.frame(Category = rep(c("A", "B", "C"), each = 100),
+                        Value = c(rnorm(100, 50, 10), rnorm(100, 60, 15), rnorm(100, 70, 20)))
+
+# Without facets
+ggplot(cust_data, aes(x = Category, y = Value)) +
+  geom_bar(stat = "summary", fun = "mean", fill = "blue") +
+  labs(title = "Bar Chart without Facets", x = "Category", y = "Mean Value")
+
+# With facets
+ggplot(cust_data, aes(x = Category, y = Value)) +
+  geom_bar(stat = "summary", fun = "mean", fill = "blue") +
+  facet_wrap(~Category) +
+  labs(title = "Bar Chart with Facets", x = "Category", y = "Mean Value")
