@@ -1,4 +1,4 @@
-# --- Set-1 ---
+# --- Set-1 ----
 
 # Create a vector containing the numbers from 1 to 10 and extract only the even numbers
 vector1 <- 1:10
