@@ -1,0 +1,34 @@
+install.packages("xgboost")
+install.packages("lime")
+install.packages("caret")
+install.packages("dplyr")
+
+library(xgboost)
+library(lime)
+library(caret)
+library(dplyr)
+
+data(airquality)
+airquality <- na.omit(airquality)
+
+# Create binary classification target: Ozone > 50 (1 = yes, 0 = no)
+airquality$OzoneClass <- as.numeric(airquality$Ozone > 50)
+set.seed(2345)
+intrain <- createDataPartition(airquality$OzoneClass, p = 0.75, list = FALSE)
+train <- airquality[intrain, ]
+test <- airquality[-intrain, ]
+train_matrix <- as.matrix(train[, c("Ozone", "Solar.R", "Wind", "Temp")])
+test_matrix <- as.matrix(test[, c("Ozone", "Solar.R", "Wind", "Temp")])
+train_labels <- train$OzoneClass
+test_labels <- test$OzoneClass
+model <- xgboost(data = train_matrix, label = train_labels, objective = "binary:logistic",
+                 nrounds = 50, verbose = 0)
+predictions <- predict(model, newdata = test_matrix)
+predicted_class <- ifelse(predictions > 0.5, 1, 0)
+confusionMatrix(factor(predicted_class), factor(test_labels))
+explainer <- lime(train[, c("Ozone", "Solar.R", "Wind", "Temp")], model = model, bin_continuous = TRUE, n_bins = 5)
+example <- test[5, c("Ozone", "Solar.R", "Wind", "Temp"), drop = FALSE]
+actual_class <- test$OzoneClass[5]
+explanation <- lime::explain(example, explainer, n_labels = 1, n_features = 4)
+explanation
+plot_features(explanation)
