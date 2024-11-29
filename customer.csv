@@ -1,0 +1,377 @@
+#SENTIMENT ANALYSIS
+library(tm)
+library(tidytext)
+library(dplyr)
+library(ggplot2)
+library(stringr)
+library(janeaustenr)
+austin_books<-austen_books()
+head(austin_books)
+corpus<-Corpus(VectorSource(austin_books$text))
+corpus<-tm_map(corpus,content_transformer(tolower))
+corpus<-tm_map(corpus,removePunctuation)
+corpus<-tm_map(corpus,removeNumbers)
+corpus<-tm_map(corpus,removeWords,stopwords("en"))
+corpus<-tm_map(corpus,stripWhitespace)
+tdm<-TermDocumentMatrix(corpus)
+tdm_matrix<-as.matrix(tdm)
+word_freq<-sort(rowSums(tdm_matrix),decreasing=TRUE)
+word_freq_df<-data.frame(word=names(word_freq),freq=word_freq)
+ggplot(head(word_freqs_df, 10),aes(x=reorder(word,-freq),y=freq))+
+  geom_bar(stat="identity")+
+  labs(title="hgd whdb", x="word",y="Frequency")
+austin_books<-austin_books %>% 
+  unnest_tokens(word,text)
+sentiment<-austin_books %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(book,sentiment)
+ggplot(sentiment,aes(x=book, y=n , fill=sentiment))+
+  geom_bar(stat="identity",position="dodge")+
+  labs(title="bdhxcd" , x="books", y="frequency")
+library(wordcloud)
+tidy_books<-austen_books %>%
+  group_by(book) %>%
+  mutate(linenumber= row_number(),
+         chapter=cumsum(str_detect(text,regex("^chapter [\\divxlc]",ignore_case=TRUE))))%>%
+  ungroup() %>%
+  unnest_tokens(word,text)
+tidy_books<-tidy_books %>%
+  anti_join(stop_words) %>%
+  count(word) %>%
+  with(wordcloud(word,n,max.word=100))
+
+
+#ASSOCIATION RULE MINING ON DATAFRAME
+library(arules)
+transactions<-list(
+  c("Milk", "Bread", "Eggs"),
+  c("Beer", "Diapers", "Chips"),
+  c("Milk", "Diapers", "Chips", "Beer"),
+  c("Bread", "Eggs", "Butter"),
+  c("Milk", "Bread", "Butter", "Eggs", "Cereal")
+)
+trans<-as(transactions,"transactions")
+inspect(trans)
+rules<-apriori(trans,parameter=list(supp=0.3, conf=0.6))
+inspect(rules)
+summary(rules)
+
+#ASSOCIATION RULE MINING ON TSV DATA
+#install.packages("arules")
+library(arules)
+#reading the book data
+bookbaskets <- read.transactions(file.choose(),
+                                 format = "single",
+                                 header = TRUE,
+                                 sep = "\t",
+                                 cols = c("userid", "title"),
+                                 rm.duplicates = TRUE)
+dim(bookbaskets)
+colnames(bookbaskets)[1:5]
+rownames(bookbaskets)[1:5]
+basketsize<-size(bookbaskets)
+dim(basketsize)
+basketuse<-bookbaskets[basketsize>1]
+dim(basketuse)
+rules<-apriori(basketuse,parameter=list(supp=0.4,conf=0.6))
+library(magrittr)
+rules %>%
+  sort(.,by="confidence") %>%
+  head(.,n=10) %>%
+  inspect(.)
+summary(rules)
+brules<-apriori(basketuse, parameter = list(supp=0.001,conf=0.77),appearance = list(rhs=c("The Lovely Bones: A Novel"),default="lhs"))
+
+summary(brules)
+
+# ON CSV 
+data<-read.transactions(file.choose())
+dim(data)
+# Convert the dataset into transactions
+trans_data <- as(data, "transactions")
+rules<-apriori(trans_data, parameter=list(supp=0.001,conf=0.1))
+print(inspect(rules))
+ 
+
+#Logistic Regression(ordered)
+# Load necessary libraries
+library(caret)
+library(glm)
+# Load the dataset
+titanic_train <- read.csv("C:/Users/usika/OneDrive/Desktop/IDS Regression/train.csv")
+titanic_test <- read.csv("C:/Users/usika/OneDrive/Desktop/IDS Regression/test.csv")
+# Data preprocessing: Remove unnecessary columns and handle missing values
+titanic_train$PassengerId  <- NULL
+titanic_train$Ticket  <- NULL
+titanic_train$Name <- as.character(titanic_train$Name)
+# Handle missing values in the 'Age' and 'Cabin' columns using kNN imputation
+impute <- preProcess(titanic_train[, c(5:8)], method = "knnImpute")
+titanic_train_imp <- predict(impute, titanic_train[, c(5:8)])
+titanic_train <- cbind(titanic_train[, c(1:4)], titanic_train_imp, titanic_train[, c(9:10)])
+# Build logistic regression model
+titanic_model <- glm(Survived ~ Sex + Pclass + Age + SibSp + Cabin, 
+                     data = titanic_train, 
+                     family = "binomial")
+# Check model summary
+summary(titanic_model)
+# Predict probabilities for the training data
+train_preds <- predict(titanic_model, newdata = titanic_train, type = "response")
+# Convert probabilities to class predictions (1 = survived, 0 = not survived)
+class_preds <- ifelse(train_preds >= 0.5, 1, 0)
+# Evaluate model performance with confusion matrix
+confusionMatrix(factor(class_preds), factor(titanic_train$Survived), positive = "1")
+# Preprocess and predict on the test data
+titanic_test$PassengerId  <- NULL
+titanic_test$Ticket  <- NULL
+titanic_test$Name <- as.character(titanic_test$Name)
+# Handle missing values in the test data
+titanic_test_imp <- predict(impute, titanic_test[, c(4:7)])
+titanic_test <- cbind(titanic_test[, c(1:3)], titanic_test_imp, titanic_test[, c(8:9)])
+# Predict probabilities on the test data
+test_preds <- predict(titanic_model, newdata = titanic_test, type = "response")
+# Convert probabilities to class predictions
+class_preds_test <- ifelse(test_preds >= 0.5, 1, 0)
+# Create a submission file
+prediction_sub <- data.frame(PassengerId = titanic_test$PassengerId, Survived = class_preds_test)
+write.csv(prediction_sub, "C:/Users/usika/OneDrive/Desktop/IDS Regression/gender_submission.csv", row.names = FALSE)
+# Final result comparison (for the test data)
+table(titanic_test$Sex, class_preds_test)
+
+#Linear Regression(ordered)
+# Load libraries
+library(dplyr)
+library(ggplot2)
+library(Metrics)
+# Load the data
+location <- "C:/ALL/desktop/SEM 5/IDS Lab/IDS Regression/Placement_Data_Full_Class.csv"
+placement.df <- read.csv(location)
+# Select relevant columns
+placement.reg <- placement.df %>% select(degree_p, mba_p)
+# Visualize relationship between degree_p and mba_p
+ggplot(placement.reg, aes(degree_p, mba_p)) +
+  geom_point() + geom_smooth(method = "lm", se = FALSE)
+# Split data into training and testing sets (70% train, 30% test)
+set.seed(123) # For reproducibility
+train_index <-runif(nrow(placement.reg))<0.70
+train_data <- placement.reg[train_index, ]
+test_data <- placement.reg[-train_index, ]
+# Build linear regression model on training data
+model <- lm(mba_p ~ degree_p, data = train_data)
+# Model summary for assessment on training data
+summary(model)
+# Predict on test data
+test_data$predicted_mba_p <- predict(model, newdata = test_data)
+# Evaluation: Calculate RMSE on test data
+rmse_test <- rmse(test_data$mba_p, test_data$predicted_mba_p)
+print(paste("RMSE on test data:", rmse_test))
+# Visualize predictions vs. actual values on test data
+ggplot(test_data, aes(x = degree_p)) +
+  geom_point(aes(y = mba_p), color = "blue") +          # Actual values in blue
+  geom_point(aes(y = predicted_mba_p), color = "red") +  # Predicted values in red
+  geom_smooth(aes(y = mba_p), method = "lm", se = FALSE, color = "green") +  # Trend line for actual values
+  labs(y = "MBA Percentage", x = "Degree Percentage",
+       title = "Actual vs Predicted MBA Percentage on Test Data")
+model1=model <- lm(mba_p ~ degree_p, data = placement.reg)
+placement.reg$residuals <- residuals(model1)
+# Histogram of Residuals
+ggplot(placement.reg, aes(residuals)) + 
+  geom_histogram(bins = 8, fill = 'blue', color = "black") + 
+  labs(title = "Residuals Distribution", x = "Residuals", y = "Frequency")
+
+
+#LOGISTIC REGRESSION ON TITANIC DATA
+library(caret)
+library(RANN)
+titanic_train<-read.csv(file.choose())
+colnames(titanic_train)
+titanic_train$PassengerId<-NULL
+titanic_train$Ticket<-NULL
+titanic_train$Pclass<-ordered(titanic_train$Pclass , levels=c("3","2","1"))
+char_cabin<-titanic_train$Cabin
+new_cabin<-ifelse(char_cabin=="",
+                  "",
+                  substr(char_cabin,1,1))
+new_cabin<-factor(new_cabin)
+titanic_train$Cabin<-new_cabin
+impute<-preProcess(titanic_train[,c(5:8)],method=c("knnImpute"))
+titanic_train_imp<-predict(impute,titanic_train[,c(5:8)])
+titanic_train<-cbind(titanic_train[,c(1:4)],titanic_train_imp,titanic_train[,c(9:10)])
+titanic_model<-glm(Survived ~ Sex,data=titanic_train, family = binomial,control = glm.control(maxit=50))
+summary(titanic_model)
+titanic_pred<-predict(titanic_model,
+                      newdata=titanic_train,
+                      type="response")
+table(titanic_pred,titanic_train$Sex)
+titanic_model<-glm(Survived ~Sex + Age + SibSp,data=titanic_train, family="binomial")
+titanic_pred<-predict(titanic_model,titanic_train,type="response")
+class<-ifelse(titanic_pred>=0.5,1,0)
+confusionMatrix(factor(class),factor(titanic_train$Survived))
+
+titanic_test<-read.csv(file.choose())
+titanic_test$PassengerId<-NULL
+titanic_test$Ticket<-NULL
+titanic_test$Pclass<-ordered(titanic_test$Pclass , levels=c("3","2","1"))
+char_cabin<-titanic_test$Cabin
+new_cabin<-ifelse(char_cabin=="",
+                  "",
+                  substr(char_cabin,1,1))
+new_cabin<-factor(new_cabin)
+titanic_test$Cabin<-new_cabin
+titanic_test_imp<-predict(impute,titanic_test[,c(4:7)])
+titanic_test<-cbind(titanic_test[,c(1:3)],titanic_test_imp,titanic_test[,c(8:9)])
+titanic_pred<-predict(titanic_model,titanic_test,type="response")
+class_pred<-ifelse(titanic_pred>=0.5,1,0)
+table(class_pred,titanic_test$Sex)
+
+
+#LINEAR REGRESSION 
+# Load necessary libraries
+library(ggplot2)
+library(caret)  # For data splitting
+# Load the data
+placement_data <- read.csv("/mnt/data/Placement_Data_Full_Class.csv")
+# Inspect the structure of the data
+str(placement_data)
+# Check for missing values and remove them if necessary
+placement_data <- na.omit(placement_data)
+
+# Split data into training and testing sets (e.g., 70% training, 30% testing)
+set.seed(123)  # Set seed for reproducibility
+train_index <- createDataPartition(placement_data$salary, p = 0.7, list = FALSE)
+train_data <- placement_data[train_index, ]
+test_data <- placement_data[-train_index, ]
+
+# Fit a linear regression model on the training data
+# Example: Predict 'salary' based on 'ssc_p' and 'hsc_p'
+model <- lm(salary ~ ssc_p + hsc_p, data = train_data)
+
+# Summary of the model
+summary(model)
+
+# Predict on the test data
+predicted_salary <- predict(model, newdata = test_data)
+
+# Evaluation: Calculate RMSE (Root Mean Squared Error) to evaluate model performance
+rmse <- sqrt(mean((predicted_salary - test_data$salary)^2))
+cat("RMSE on test data:", rmse, "\n")
+
+# Visualization 1: Regression Plot for Training Data
+ggplot(train_data, aes(x = ssc_p, y = salary)) +
+  geom_point(color = "blue") +
+  geom_smooth(method = "lm", color = "red", se = FALSE) +
+  labs(title = "Linear Regression of Salary on SSC Percentage (Training Data)",
+       x = "SSC Percentage (10th Grade)",
+       y = "Salary") +
+  theme_minimal()
+
+# Visualization 2: Actual vs Predicted Salaries on Test Data
+ggplot(data = test_data, aes(x = salary, y = predicted_salary)) +
+  geom_point(color = "green") +
+  geom_abline(slope = 1, intercept = 0, color = "red", linetype = "dashed") +
+  labs(title = "Actual vs Predicted Salary (Test Data)",
+       x = "Actual Salary",
+       y = "Predicted Salary") +
+  theme_minimal()
+
+
+#LIME ON NUMERICAL DATA
+library(lime)
+library(randomForest)
+library(ggplot2)
+# Load data
+data(iris)
+# Train a random forest model
+model <- randomForest(Species ~ ., data = iris)
+# Create a LIME explainer
+explainer <- lime(iris[, -5], model)
+# Select a specific instance to explain
+instance <- iris[1, -5]
+# Explain the instance
+explanation <- explain(instance, explainer, n_features = 2)
+# Visualize importance
+plot_features(explanation)
+
+
+
+
+#LIME ON IMDB DATA
+library(zeallot)
+library(lime)
+library(text2vec)
+c(texts,labels)%<-% readRDS(file.choose())
+list(text=texts[1],label=labels[1])
+list(text=texts[12],label=labels[12])
+source(file.choose())
+vocab<-create_pruned_vocabulary(texts)
+dtm_train<-make_matrix(texts,vocab)
+model<- fit_imdb_model(dtm_train,labels)
+c(test_txt,test_labels) %<-% readRDS(file.choose())
+dtm_test<-make_matrix(test_txt,vocab)
+predcted<-predict(model,newdata=dtm_test)
+teframe<-data.frame(true_labels=test_labels,pred=predcted)
+(cmat<-with(teframe,table(true_labels,pred=pred>0.5)))
+sum(diag(cmat))/sum(cmat)
+library(WVPlots)
+DoubleDensityPlot(teframe,"pred","true_labels","density plot")
+explainer<-lime(texts,model,preprocess = function(x) make_matrix(x,vocab))
+test_case<-"test_19552"
+samplecase<-test_txt[test_case]
+pred_prob<-predict(model,make_matrix(samplecase,vocab))
+list(text=samplecase,labels=test_labels[test_case],prediction=round(pred_prob))
+explanation<-explain(samplecase,explainer,n_labels=1,n_features = 5)
+plot_features(explanation)
+
+
+
+#VISUALIZATION 
+data<-read.csv(file.choose())
+colnames(data)
+#Histogram
+library(ggplot2)
+ggplot(data,aes(x=Age))+ geom_histogram(bin_width=100 ,fill="red")
+
+# Density
+library(scales)
+ggplot(data,aes(x=Survived))+ geom_density() +scale_x_continuous()
+
+#BAR
+ggplot(data,aes(x=Survived)) +geom_bar(position = "dodge")
+
+#Line
+x=runif(100)
+y=2*x + 0.05
+ggplot(data.frame(x=x,y=y),aes(x=x,y=y)) + geom_line()
+
+#Dotplot
+library(WVPlots)
+ClevelandDotPlot(data,"Age","This is dot plot") + coord_flip()
+
+#scatter
+ggplot(data,aes(x=Survived,y=Age))+geom_point()+geom_smooth()
+# Hexbin
+HexBinPlot(data,"Survived","Age","This is hexbinplots") + geom_smooth()
+correlation <- cor(data$Survived, data$Age, use = "complete.obs")
+correlation
+
+
+
+#VTREAT
+library(vtreat) 
+library(dplyr) 
+data<-read.csv(file.choose()) 
+head(data) 
+null_summary <- colSums(is.na(data)) 
+print("Missing values in each column:") 
+print(null_summary) 
+colSums(is.na(data))
+# Apply design_missingness_treatment to flag missing values 
+# We exclude the target column (User.Behavior.Class) from treatment 
+input_columns <- setdiff(colnames(data), "Survived") 
+# Create a treatment plan for missingness 
+missingness_plan <-  design_missingness_treatment(data, varlist = 
+                                                    input_columns) 
+#Apply the missingness treatment to the datasetM 
+treated_data <- prepare(missingness_plan, data) 
+# Check the treated data with new missingness indicators 
+head(treated_data) 
+summary(treated_data)
