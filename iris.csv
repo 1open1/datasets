@@ -1,0 +1,281 @@
+# ----------------------------- Set-1 -----------------------------
+
+# Visualize the importance of LIME using Iris dataset
+library(lime)
+library(MASS)
+iris_model <- glm(Species ~ ., data = iris, family = "binomial")
+explainer <- lime(iris, iris_model)
+explanation <- explain(iris[1:10, ], explainer, n_features = 2)
+plot_features(explanation)
+
+# Implement vtreat package on a dataset
+library(vtreat)
+data <- data.frame(Age = c(25, NA, 35, 40, NA), Income = c(50000, 60000, NA, 80000, 90000))
+treatment_plan <- design_missingness_treatment(data)
+treated_data <- prepare(treatment_plan, data)
+print(treated_data)
+
+# Plot the histogram on income using Cust data
+cust_data <- data.frame(Income = c(40000, 50000, 60000, 70000, 80000))
+hist(cust_data$Income, main = "Income Histogram", xlab = "Income", col = "skyblue", border = "white")
+
+# ----------------------------- Set-2 -----------------------------
+
+# Generate association rules from transactions
+library(arules)
+transactions <- list(
+  T1 = c("Milk", "Bread"), 
+  T2 = c("Eggs", "Butter", "Bread"), 
+  T3 = c("Milk", "Cereal"),
+  T4 = c("Bread", "Jam"),
+  T5 = c("Eggs", "Bacon"),
+  T6 = c("Milk", "Chocolate")
+)
+trans <- as(transactions, "transactions")
+rules <- apriori(trans, parameter = list(supp = 0.2, conf = 0.5))
+inspect(rules)
+
+# Visualize different styles of bar chart
+library(ggplot2)
+ggplot(cust_data, aes(x = factor(Income))) +
+  geom_bar(fill = "orange") +
+  ggtitle("Bar Chart of Income")
+
+# Perform sentiment analysis on Jane Austen's novels
+library(janeaustenr)
+library(tidytext)
+austen_books <- austen_books()
+tidy_books <- austen_books %>%
+  unnest_tokens(word, text) %>%
+  inner_join(get_sentiments("bing"))
+sentiment_count <- tidy_books %>%
+  count(sentiment)
+print(sentiment_count)
+
+# ----------------------------- Set-3 -----------------------------
+
+# Visualize sentiment analysis scores
+ggplot(sentiment_count, aes(x = sentiment, y = n, fill = sentiment)) +
+  geom_bar(stat = "identity") +
+  ggtitle("Sentiment Scores")
+
+# Fit a linear regression model on Boston housing dataset
+data(Boston, package = "MASS")
+boston_model <- lm(medv ~ ., data = Boston)
+summary(boston_model)
+
+# Filter cars with mpg > 20 and create bar plot of cylinders
+filtered_cars <- mtcars %>%
+  filter(mpg > 20)
+ggplot(filtered_cars, aes(x = factor(cyl))) +
+  geom_bar(fill = "purple") +
+  ggtitle("Number of Cylinders (Filtered by MPG > 20)")
+
+# ----------------------------- Set-4 -----------------------------
+
+# Sentiment analysis on "Pride and Prejudice"
+pride_prejudice <- austen_books() %>%
+  filter(book == "Pride & Prejudice") %>%
+  unnest_tokens(word, text) %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(chapter, sentiment, sort = TRUE)
+
+ggplot(pride_prejudice, aes(x = chapter, y = n, color = sentiment)) +
+  geom_line() +
+  ggtitle("Sentiment Trends in Pride and Prejudice")
+
+# Association rules for restaurant transactions
+restaurant_transactions <- list(
+  T1 = c("Pizza", "Salad"),
+  T2 = c("Burger", "Fries"),
+  T3 = c("Pasta", "Garlic Bread"),
+  T4 = c("Steak", "Potato"),
+  T5 = c("Soda", "Wings"),
+  T6 = c("Dessert", "Coffee")
+)
+restaurant_trans <- as(restaurant_transactions, "transactions")
+restaurant_rules <- apriori(restaurant_trans, parameter = list(supp = 0.2, conf = 0.5))
+inspect(restaurant_rules)
+
+# Produce hexbin plot for age and income
+library(hexbin)
+hexbinplot(cust_data$Income ~ cust_data$Age, xlab = "Age", ylab = "Income")
+
+# ----------------------------- Set-5 -----------------------------
+
+# Logistic regression on Titanic dataset
+library(titanic)
+titanic_data <- na.omit(titanic::titanic_train)
+titanic_model <- glm(Survived ~ Age + Sex + Pclass, family = "binomial", data = titanic_data)
+summary(titanic_model)
+
+# Text analysis of Jane Austen novels
+common_words <- austen_books %>%
+  unnest_tokens(word, text) %>%
+  count(word, sort = TRUE)
+print(common_words)
+
+# Scatterplot of age and income
+ggplot(cust_data, aes(x = Age, y = Income)) +
+  geom_point(color = "blue") +
+  ggtitle("Age vs. Income")
+
+# ----------------------------- Set-6 -----------------------------
+
+# Create a vector of random integers (0 to 999) with replacement, length 250
+random_vector <- sample(0:999, size = 250, replace = TRUE)
+
+# Pick out values in the vector greater than 600
+values_above_600 <- random_vector[random_vector > 600]
+print(values_above_600)
+
+# Normalize columns of a data frame using apply
+normalize <- function(x) (x - mean(x, na.rm = TRUE)) / sd(x, na.rm = TRUE)
+df <- data.frame(A = rnorm(10), B = rnorm(10))
+normalized_df <- as.data.frame(apply(df, 2, normalize))
+print(normalized_df)
+
+# Create synthetic dataset with missing values
+set.seed(123)
+synthetic_data <- data.frame(
+  Age = sample(c(NA, 20:50), 100, replace = TRUE),
+  Income = sample(c(NA, 20000:80000), 100, replace = TRUE),
+  Number_of_Vehicles = sample(c(NA, 0:3), 100, replace = TRUE),
+  Gas_Usage = sample(c(NA, 10:50), 100, replace = TRUE)
+)
+
+# Standardize the "Age" column using mean and standard deviation
+synthetic_data$Age <- (synthetic_data$Age - mean(synthetic_data$Age, na.rm = TRUE)) /
+  sd(synthetic_data$Age, na.rm = TRUE)
+
+# Bar chart with and without facets
+library(ggplot2)
+facet_data <- data.frame(
+  Category = rep(c("A", "B"), each = 10),
+  Value = rnorm(20)
+)
+# Without facets
+ggplot(facet_data, aes(x = Category, y = Value)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  ggtitle("Bar Chart Without Facets")
+
+# With facets
+ggplot(facet_data, aes(x = Category, y = Value)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  facet_wrap(~Category) +
+  ggtitle("Bar Chart With Facets")
+
+# ----------------------------- Set-7 -----------------------------
+
+# Create a matrix C and find row sums using apply
+matrix_C <- matrix(1:16, nrow = 4, byrow = TRUE)
+row_sums <- apply(matrix_C, 1, sum)
+print(row_sums)
+
+# Read a CSV file into a data frame
+df <- read.csv("employee_data.csv", header = TRUE, stringsAsFactors = FALSE)
+
+# Create synthetic dataset with missing values
+synthetic_data2 <- data.frame(
+  Age = sample(c(NA, 20:50), 100, replace = TRUE),
+  Income = sample(c(NA, 20000:80000), 100, replace = TRUE),
+  Number_of_Vehicles = sample(c(NA, 0:3), 100, replace = TRUE),
+  Gas_Usage = sample(c(NA, 10:50), 100, replace = TRUE)
+)
+
+# Apply missingness treatment using vtreat
+library(vtreat)
+treatment_plan <- design_missingness_treatment(synthetic_data2)
+treated_data <- prepare(treatment_plan, synthetic_data2)
+
+# Hexbin plot
+library(hexbin)
+hexbinplot(cust_data$Income ~ cust_data$Age, xlab = "Age", ylab = "Income")
+
+# ----------------------------- Set-8 -----------------------------
+
+# Combine two lists and apply sum using lapply
+list1 <- list(a = 1:3, b = 4:6)
+list2 <- list(c = 7:9, d = 10:12)
+combined_list <- c(list1, list2)
+list1_sums <- lapply(list1, sum)
+print(list1_sums)
+
+# Filter rows with dplyr
+library(dplyr)
+filtered_df <- df %>% filter(Salary > 50000)
+
+# Split iris dataset into training (80%) and testing (20%) sets
+library(caret)
+set.seed(123)
+train_index <- createDataPartition(iris$Species, p = 0.8, list = FALSE)
+train_set <- iris[train_index, ]
+test_set <- iris[-train_index, ]
+
+# Bar chart styles
+ggplot(iris, aes(x = Species)) +
+  geom_bar(fill = "lightblue") +
+  ggtitle("Bar Chart Without Facets")
+
+ggplot(iris, aes(x = Species)) +
+  geom_bar(fill = "lightblue") +
+  facet_wrap(~Species) +
+  ggtitle("Bar Chart With Facets")
+
+# ----------------------------- Set-9 -----------------------------
+
+# Create ordered factor for education levels
+education <- factor(
+  c("Master", "Bachelor", "High School", "Bachelor", "Master"),
+  levels = c("High School", "Bachelor", "Master"),
+  ordered = TRUE
+)
+
+# Create, load, and parse XML file
+library(XML)
+xml_data <- xmlParse("<root><child1>Value1</child1><child2>Value2</child2></root>")
+root_element <- xmlRoot(xml_data)
+second_child <- xmlValue(root_element[[2]])
+print(second_child)
+
+# Identify and count missing values in airquality dataset
+data(airquality)
+missing_values <- colSums(is.na(airquality))
+print(missing_values)
+
+# Remove rows with missing values
+cleaned_airquality <- na.omit(airquality)
+
+# Density plot
+ggplot(iris, aes(x = Sepal.Length, fill = Species)) +
+  geom_density(alpha = 0.5) +
+  ggtitle("Density Plot")
+
+# ----------------------------- Set-10 -----------------------------
+
+# Sum of all elements in a 3-dimensional array
+array_3d <- array(1:27, dim = c(3, 3, 3))
+array_sum <- sum(array_3d)
+print(array_sum)
+
+# Create data frame with Name and Age
+df <- data.frame(
+  Name = c("Alice", "Bob", "Alice", "Bob"),
+  Age = c(25, 30, 32, 39)
+)
+
+# View first few rows and structure of a data frame
+print(head(df))
+print(str(df))
+
+# Group-level sampling
+group_data <- iris %>%
+  group_by(Species) %>%
+  sample_n(5)
+
+# Horizontal bar chart
+ggplot(mtcars, aes(x = reorder(row.names(mtcars), mpg), y = mpg)) +
+  geom_bar(stat = "identity", fill = "purple") +
+  coord_flip() +
+  ggtitle("Horizontal Bar Chart")
+
