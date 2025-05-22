@@ -1,3 +1,5 @@
+cd $HIVE_HOME
+
 hive
 
 // Creating a Hive Table
