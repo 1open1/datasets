@@ -1,6 +1,6 @@
 start -all.sh
 jps
-hdfs dfs -put weathertext.csv  /internal
+hdfs dfs -put text.csv  /internal
 hdfs dfs -put mapper.py  /internal
 hdfs dfs -put reducer.py  /internal
 hdfs dfs -ls  /internal
