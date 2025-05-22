@@ -1,0 +1,99 @@
+hive
+
+// Creating a Hive Table
+
+CREATE TABLE weather_data (
+    weather_date STRING,
+    station_id INT,
+    temperature INT
+)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY '\t';
+
+show tables
+
+describe weather_data;
+
+//  Loading Data into the Table
+LOAD DATA LOCAL INPATH 'weather_sample.txt' INTO TABLE weather_data;
+
+// Selecting Data from Table  
+
+SELECT * FROM weather_data;
+
+SELECT * FROM weather_data LIMIT 5
+
+// Creating an External Table
+CREATE EXTERNAL TABLE weather_external (
+    weather_date STRING,
+    station_id INT,
+    temperature INT
+)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY '\t'
+LOCATION '/user/hive/external/weather_data/';
+
+// Partitioning and Bucketing
+CREATE TABLE weather_partitioned (
+    weather_date STRING,
+    station_id INT,
+    temperature INT
+)
+PARTITIONED BY (year STRING)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY '\t';
+
+ALTER TABLE weather_partitioned ADD PARTITION (year='1990');
+
+// Bucketing by Station ID:
+
+CREATE TABLE weather_bucketed (
+    weather_date STRING,
+    station_id INT,
+    temperature INT
+)
+CLUSTERED BY (station_id) INTO 4 BUCKETS
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY '\t';
+
+
+// Alter 
+ALTER TABLE weather_data ADD COLUMNS (humidity INT)
+
+// Dropping a Table
+DROP TABLE weather_data;
+
+// Querying Data
+
+Finding Maximum Temperature
+SELECT MAX(temperature) FROM weather_data;
+
+Finding Minimum Temperature
+SELECT MIN(temperature) FROM weather_data;
+
+// Sorting and Aggregation
+SELECT * FROM weather_data ORDER BY temperature DESC;
+
+SELECT SUBSTR(weather_date, 7, 4), AVG(temperature)
+FROM weather_data
+GROUP BY SUBSTR(weather_date, 7, 4);
+
+// join 
+CREATE TABLE station_info (station_id INT, location STRING) ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t';
+LOAD DATA LOCAL INPATH '/home/hadoop/Desktop/rmm/stationdata.txt' INTO TABLE station_info;
+
+SELECT w.weather_date, w.temperature, s.location FROM weather_data w JOIN station_info s ON w.station_id = s.station_id;
+
+// Subqueries
+SELECT * FROM weather_data WHERE temperature = (SELECT MAX(temperature) FROM weather_data);
+
+// views 
+CREATE VIEW temp_summary AS 
+SELECT station_id, AVG(temperature) AS avg_temp 
+FROM weather_data 
+GROUP BY station_id;
+
+SELECT * FROM temp_summary;
+
+
+

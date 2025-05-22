@@ -1,0 +1,38 @@
+./spark-shell
+
+val rdd = spark.sparkContext.textFile("file:///home/hadoop/Desktop/Sparkcount.txt")
+
+rdd.collect()
+
+val rdd1 = rdd.flatMap(x => x.split(" "))
+
+rdd1.collect()
+
+val rdd2 = rdd1.map(x => (x,1))
+
+rdd2.collect()
+
+val rdd3 = rdd2.reduceByKey((a, b) => a + b)
+
+rdd3.collect()
+
+rdd3.toDF("word", "count").show()
+
+# pyspark 
+
+./pyspark
+
+input_data = sc.textFile('file:///home/hadoop/Desktop/Sparkcount.txt')
+
+word_counts = input_data.flatMap(lambda line: line.split(" "))
+
+word_counts1 = word_counts.map(lambda word: (word, 1))
+
+word_counts1.collect()
+
+final_counts = word_counts1.reduceByKey(lambda a, b: a+b)
+
+final_counts.collect()
+
+
+

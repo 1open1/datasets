@@ -1,0 +1,9 @@
+start -all.sh
+jps
+hdfs dfs -put weathertext.csv  /internal
+hdfs dfs -put mapper.py  /internal
+hdfs dfs -put reducer.py  /internal
+hdfs dfs -ls  /internal
+ hadoop jar ../hadoop/share/hadoop/tools/lib/hadoop-streaming-3.3.6.jar -file mapper.py -mapper "python3 mapper.py" -file reducer.py -reducer "python3 reducer.py" -input /internal/weathertext.csv -output /internal/output.txt
+hdfs dfs -ls  /internal
+hdfs dfs -cat  /internal/output.txt/part-00000

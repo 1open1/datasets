@@ -1,0 +1,54 @@
+/// System Preparation
+sudo apt-get update
+sudo apt-get install openssh-client openssh-server
+sudo service ssh restart
+ssh localhost                    
+
+// Install Java (JDK 8 or above)
+sudo apt update && sudo apt install openjdk-8-jdk
+java -version
+
+// Add Kafka User
+sudo adduser hadoop
+su - hadoop
+
+// Download & Extract Kafka
+cd ~/Downloads
+tar xzf kafka_2.13-4.0.0.tgz
+sudo mv kafka_2.13-4.0.0 /home
+cd /home
+ln -s kafka_2.13-4.0.0 kafka     
+
+// Configure Environment Variable
+sudo nano ~/.profile
+export KAFKA_HOME=/home/kafka
+export PATH=$PATH:$KAFKA_HOME/bin
+source ~/.profile
+
+// Install Zookeeper
+sudo apt-get install -y zookeeperd
+
+sudo nano /etc/systemd/system/zookeeper.service
+
+// Create Systemd Service Files
+[Unit]
+Description=Apache Zookeeper server
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/home/kafka/bin/zookeeper-server-start.sh /home/kafka/config/zookeeper.properties
+ExecStop=/home/kafka/bin/zookeeper-server-stop.sh
+Restart=on-abnormal
+
+[Install]
+WantedBy=multi-user.target
+
+/// Enable and Start Services
+sudo systemctl enable zookeeper
+sudo systemctl start zookeeper
+sudo systemctl status zookeeper
+
+sudo systemctl enable kafka
+sudo systemctl start kafka
+sudo systemctl status kafka
