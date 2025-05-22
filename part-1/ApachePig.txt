@@ -1,0 +1,23 @@
+-- Apache Pig Script
+
+-- Load cleaned data
+records = LOAD 'weather_cleaned.txt' USING PigStorage(' ') AS (number:int, temperature:int, time:chararray, a:float);
+dump records;
+
+-- Filter records by specific condition
+filtered_records = FILTER records BY temperature == 13910 AND (a <= 35 OR a >= 50);
+dump filtered_records;
+
+-- Group records by time
+grouped_records = GROUP records BY time;
+dump grouped_records;
+
+-- Find max temperature per group
+max_temp = FOREACH grouped_records GENERATE group, MAX(records.temperature);
+dump max_temp;
+
+-- Schema descriptions
+describe records;
+describe filtered_records;
+describe grouped_records;
+describe max_temp;
